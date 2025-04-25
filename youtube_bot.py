@@ -15,13 +15,12 @@ def download_youtube(url, lang='fr', mode='merged'):
     base_dir = "Youtube_Bot_Downloads"
     os.makedirs(base_dir, exist_ok=True)
 
-    # First, extract video info
     with YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
         info = ydl.extract_info(url, download=False)
 
     title = info.get('title', 'video')
-    folder_name = sanitize_filename(title)
-    download_dir = os.path.join(base_dir, folder_name)
+    clean_name = sanitize_filename(title)
+    download_dir = os.path.join(base_dir, clean_name)
     os.makedirs(download_dir, exist_ok=True)
 
     duration = info.get('duration', 0)
@@ -58,35 +57,42 @@ def download_youtube(url, lang='fr', mode='merged'):
     video_fmt = best_video['format_id']
     audio_fmt = (preferred_audio or fallback_audio)['format_id']
     audio_lang = (preferred_audio or fallback_audio).get('language', 'unknown')
+    video_ext = best_video['ext']
+    audio_ext = (preferred_audio or fallback_audio)['ext']
 
     print(f"🎥 Title: {title}")
     print(f"⏱️ Duration: {duration_str}")
     print(f"🗣️ Audio Language: {audio_lang}")
     print(f"🎞️ Video Format: {video_fmt}, 🔊 Audio Format: {audio_fmt}")
 
-    video_file = os.path.join(download_dir, f"x_video.{best_video['ext']}")
-    audio_file = os.path.join(download_dir, f"x_audio.{audio_fmt}.{(preferred_audio or fallback_audio)['ext']}")
-    sub_file   = os.path.join(download_dir, f"x_subtitles.{lang}.vtt")
-    merged_file = os.path.join(download_dir, "x_merged.mp4")
+    merged_file = os.path.join(download_dir, f"{clean_name}_merged.mp4")
+    video_file = os.path.join(download_dir, f"{clean_name}_video.{video_ext}")
+    audio_file = os.path.join(download_dir, f"{clean_name}_audio.{audio_ext}")
+    subtitle_file = os.path.join(download_dir, f"{clean_name}_subtitles.{lang}.vtt")
 
     if mode in ['separate', 'both']:
-        # Download separately
-        ydl_opts_sep = {
-            'outtmpl': os.path.join(download_dir, 'x_%(ext)s'),
-            'format': f'{video_fmt}+{audio_fmt}',
+        sep_opts = {
+            'outtmpl': os.path.join(download_dir, f"{clean_name}_%(id)s.%(ext)s"),
+            'format': f"{video_fmt}+{audio_fmt}",
             'merge_output_format': None,
             'postprocessors': [],
             'writesubtitles': True,
             'subtitleslangs': [lang, 'en'],
-            'quiet': False,
+            'quiet': False
         }
-        with YoutubeDL(ydl_opts_sep) as ydl:
+        with YoutubeDL(sep_opts) as ydl:
             ydl.download([url])
-        os.rename(os.path.join(download_dir, 'x_webm'), audio_file)
-        os.rename(os.path.join(download_dir, 'x_mp4'), video_file)
+
+        # Rename based on format ids
+        vid_temp = os.path.join(download_dir, f"{clean_name}_{video_fmt}.{video_ext}")
+        aud_temp = os.path.join(download_dir, f"{clean_name}_{audio_fmt}.{audio_ext}")
+        if os.path.exists(vid_temp):
+            os.rename(vid_temp, video_file)
+        if os.path.exists(aud_temp):
+            os.rename(aud_temp, audio_file)
 
     if mode in ['merged', 'both']:
-        ydl_opts_merge = {
+        merge_opts = {
             'outtmpl': merged_file,
             'format': f'{video_fmt}+{audio_fmt}',
             'merge_output_format': 'mp4',
@@ -94,10 +100,10 @@ def download_youtube(url, lang='fr', mode='merged'):
             'subtitleslangs': [lang, 'en'],
             'quiet': False
         }
-        with YoutubeDL(ydl_opts_merge) as ydl:
+        with YoutubeDL(merge_opts) as ydl:
             ydl.download([url])
 
-    print(f"✅ Download completed in: {download_dir}")
+    print(f"✅ Download complete! Files saved in: {download_dir}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="YouTube Multi-language Downloader Bot")
