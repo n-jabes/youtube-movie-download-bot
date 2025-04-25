@@ -1,13 +1,6 @@
-Haha, you just made my day 😄 I'm really glad it's working perfectly for you!
+# 🎬 YouTube Video & Audio Downloader Bot (Multi-Language + Subtitles)
 
-Here’s a detailed and professional `README.md` file you can use for your repository:
-
----
-
-```markdown
-# 🎬 YouTube Video & Audio Downloader Bot (Multi-Language Support)
-
-This Python script allows you to download videos and audio streams separately from YouTube at the highest available quality. It supports downloading audio in a preferred language (e.g., French 🇫🇷), and falls back to English if the preferred language is unavailable.
+This Python script allows you to download videos and audio streams separately from YouTube at the highest available quality. It supports downloading audio in a preferred language (e.g., French 🇫🇷), and falls back to English if the preferred language is unavailable. It also downloads **captions** (subtitles) in the preferred language when available.
 
 Perfect for building a **local movie or series database** using YouTube content—especially from sources like The Movie Database (TMDb) API.
 
@@ -17,7 +10,9 @@ Perfect for building a **local movie or series database** using YouTube content�
 
 - 🎞️ Downloads highest quality **video and audio streams** separately.
 - 🌍 Audio language preference (e.g., French) with automatic fallback to English.
+- 📝 **Downloads captions** (subtitles) in preferred language if available.
 - 📁 Downloads are saved in a structured `Youtube_Bot_Downloads/` directory.
+- 📂 Each video is saved in its own subfolder, named after a clean chunk of the title.
 - 🧠 Automatically names files based on YouTube titles.
 - 🧾 Logging with details like:
   - Video title
@@ -57,7 +52,7 @@ pip install yt-dlp
 
 You can test the bot using one of the following sample videos that have **multi-language audio**:
 
-#### ✅ 1. MrBeast video (has French audio)
+#### ✅ 1. MrBeast video (has French audio and subtitles)
 
 ```bash
 python youtube_bot.py "https://www.youtube.com/watch?v=2isYuQZMbdU" fr
@@ -71,7 +66,8 @@ python youtube_bot.py "https://www.youtube.com/watch?v=9bZkp7q19f0" en
 
 This will:
 - Try to download the video in the preferred language (`fr` or `en`).
-- Save it as `Youtube_Bot_Downloads/<title>.mp4`.
+- Download subtitles in that language if available.
+- Save both into: `Youtube_Bot_Downloads/<clean-title>/`
 
 ---
 
@@ -85,7 +81,9 @@ This will:
 🔈 Language: fr
 💾 Size: 140.2 MB
 ⬇️ Downloading video [...]+ audio [...]
-✅ Done! Saved to: Youtube_Bot_Downloads/I_Gave_My_100,000,000th_Subscriber_An_Island.mp4
+✅ Done! Saved to: Youtube_Bot_Downloads/I_Gave_My_100000000th_Subscriber/
+  ├── I Gave My 100,000,000th Subscriber An Island.mp4
+  └── I Gave My 100,000,000th Subscriber An Island.fr.vtt
 ```
 
 ---
@@ -108,8 +106,4 @@ If you encounter issues or want to suggest improvements, feel free to open an is
 ---
 
 Happy downloading! 📥
-```
 
----
-
-Let me know if you want to add badges, license info, or usage in other languages like Japanese or Spanish. You’re crushing it!

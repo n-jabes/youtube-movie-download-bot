@@ -3,25 +3,31 @@ import os
 import re
 from yt_dlp import YoutubeDL
 
-DOWNLOAD_DIR = "Youtube_Bot_Downloads"
-
 def sanitize_filename(name):
-    return re.sub(r'[\\/*?:"<>|]', '', name).replace(' ', '_')[:100]
+    return re.sub(r'[^a-zA-Z0-9_]+', '_', name)[:40].strip('_')
 
 def download_video_audio(url, preferred_lang='fr'):
-    print(f"\n🎬 Processing URL: {url}")
+    print(f"🎬 Processing URL: {url}")
     print(f"🌍 Preferred audio language: {preferred_lang}")
 
-    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+    # Base download directory
+    base_dir = "Youtube_Bot_Downloads"
+    os.makedirs(base_dir, exist_ok=True)
 
-    ydl_opts_info = {'quiet': True, 'skip_download': True}
-    with YoutubeDL(ydl_opts_info) as ydl:
+    # Get info first
+    ydl_opts = {'quiet': True, 'skip_download': True}
+    with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
-    title = sanitize_filename(info.get('title', 'video'))
+    title = info.get('title', 'video')
+    folder_name = sanitize_filename(title)
+    download_dir = os.path.join(base_dir, folder_name)
+    os.makedirs(download_dir, exist_ok=True)
+
     duration = info.get('duration', 0)
-    duration_min = duration // 60
+    duration_min = f"{duration // 60}m {duration % 60}s"
     formats = info.get('formats', [])
+    subtitles = info.get('subtitles', {})
 
     best_video = None
     preferred_audio = None
@@ -33,43 +39,50 @@ def download_video_audio(url, preferred_lang='fr'):
                 best_video = f
         elif f.get('acodec') != 'none' and f.get('vcodec') == 'none':
             lang = f.get('language') or ''
-            if preferred_lang.lower() in lang.lower() and not preferred_audio:
-                preferred_audio = f
-            elif 'en' in lang.lower() and not fallback_audio:
-                fallback_audio = f
+            if preferred_lang.lower() in lang.lower():
+                preferred_audio = f if not preferred_audio else preferred_audio
+            elif 'en' in lang.lower():
+                fallback_audio = f if not fallback_audio else fallback_audio
 
-    out_path = os.path.join(DOWNLOAD_DIR, f"{title}.mp4")
-
-    if not best_video or not (preferred_audio or fallback_audio):
-        print("⚠️ Couldn't find separate streams. Downloading best available with video+audio...")
-        ydl_opts = {'outtmpl': out_path}
+    selected_audio = preferred_audio or fallback_audio
+    if not best_video or not selected_audio:
+        print("⚠️ Couldn't find separate streams. Downloading best available...")
+        ydl_opts = {
+            'outtmpl': os.path.join(download_dir, f"%(title)s.%(ext)s"),
+            'writesubtitles': True,
+            'subtitleslangs': [preferred_lang, 'en'],
+            'quiet': False
+        }
         with YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        print(f"✅ Downloaded: {out_path}")
-        print(f"⏱️ Duration: {duration_min} min")
+        print(f"✅ Downloaded to: {download_dir}")
         return
 
     video_fmt = best_video['format_id']
-    audio_fmt = (preferred_audio or fallback_audio)['format_id']
-    audio_lang = (preferred_audio or fallback_audio).get('language', 'unknown')
-    total_size = ((best_video.get('filesize') or 0) + (preferred_audio or fallback_audio).get('filesize', 0)) / (1024**2)
+    audio_fmt = selected_audio['format_id']
+    lang_code = selected_audio.get('language', 'unknown')
+    size = best_video.get('filesize_approx') or best_video.get('filesize') or 0
+    size_mb = f"{(size / (1024 * 1024)):.1f} MB" if size else "unknown"
 
-    print(f"⬇️ Downloading video [{video_fmt}] and audio [{audio_fmt}]")
-    print(f"📦 Estimated Size: {total_size:.2f} MB")
-    print(f"🗣️ Audio Language: {audio_lang}")
-    print(f"⏱️ Duration: {duration_min} min\n")
+    print(f"✅ Video Title: {title}")
+    print(f"🎥 Duration: {duration_min}")
+    print(f"🔈 Audio Language: {lang_code}")
+    print(f"💾 Video Size (approx): {size_mb}")
+    print(f"⬇️ Downloading video [{video_fmt}] and audio [{audio_fmt}]...")
 
     ydl_opts = {
-        'outtmpl': out_path,
+        'outtmpl': os.path.join(download_dir, f"%(title)s.%(ext)s"),
         'format': f'{video_fmt}+{audio_fmt}',
         'merge_output_format': 'mp4',
-        'quiet': False
+        'writesubtitles': True,
+        'subtitleslangs': [preferred_lang, 'en'],
+        'quiet': False,
     }
 
     with YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
 
-    print(f"\n✅ Download complete! Saved to: {out_path}")
+    print(f"✅ Done! Saved to: {download_dir}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
