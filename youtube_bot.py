@@ -1,22 +1,22 @@
 import sys
 import os
 import re
+import argparse
 from yt_dlp import YoutubeDL
 
 def sanitize_filename(name):
     return re.sub(r'[^a-zA-Z0-9_]+', '_', name)[:40].strip('_')
 
-def download_video_audio(url, preferred_lang='fr'):
-    print(f"🎬 Processing URL: {url}")
-    print(f"🌍 Preferred audio language: {preferred_lang}")
+def download_youtube(url, lang='fr', mode='merged'):
+    print(f"\n🎬 URL: {url}")
+    print(f"🌍 Preferred Language: {lang}")
+    print(f"🛠️ Mode: {mode}")
 
-    # Base download directory
     base_dir = "Youtube_Bot_Downloads"
     os.makedirs(base_dir, exist_ok=True)
 
-    # Get info first
-    ydl_opts = {'quiet': True, 'skip_download': True}
-    with YoutubeDL(ydl_opts) as ydl:
+    # First, extract video info
+    with YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
         info = ydl.extract_info(url, download=False)
 
     title = info.get('title', 'video')
@@ -25,8 +25,8 @@ def download_video_audio(url, preferred_lang='fr'):
     os.makedirs(download_dir, exist_ok=True)
 
     duration = info.get('duration', 0)
-    duration_min = f"{duration // 60}m {duration % 60}s"
     formats = info.get('formats', [])
+    duration_str = f"{duration // 60}m {duration % 60}s"
     subtitles = info.get('subtitles', {})
 
     best_video = None
@@ -38,57 +38,72 @@ def download_video_audio(url, preferred_lang='fr'):
             if not best_video or f.get('height', 0) > best_video.get('height', 0):
                 best_video = f
         elif f.get('acodec') != 'none' and f.get('vcodec') == 'none':
-            lang = f.get('language') or ''
-            if preferred_lang.lower() in lang.lower():
-                preferred_audio = f if not preferred_audio else preferred_audio
-            elif 'en' in lang.lower():
-                fallback_audio = f if not fallback_audio else fallback_audio
+            lang_code = f.get('language') or ''
+            if lang.lower() in lang_code.lower() and not preferred_audio:
+                preferred_audio = f
+            elif 'en' in lang_code.lower() and not fallback_audio:
+                fallback_audio = f
 
-    selected_audio = preferred_audio or fallback_audio
-    if not best_video or not selected_audio:
-        print("⚠️ Couldn't find separate streams. Downloading best available...")
+    if not best_video or not (preferred_audio or fallback_audio):
+        print("⚠️ Couldn't find split streams. Downloading best available merged stream.")
         ydl_opts = {
-            'outtmpl': os.path.join(download_dir, f"%(title)s.%(ext)s"),
+            'outtmpl': os.path.join(download_dir, '%(title)s.%(ext)s'),
             'writesubtitles': True,
-            'subtitleslangs': [preferred_lang, 'en'],
-            'quiet': False
+            'subtitleslangs': [lang, 'en'],
         }
         with YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        print(f"✅ Downloaded to: {download_dir}")
         return
 
     video_fmt = best_video['format_id']
-    audio_fmt = selected_audio['format_id']
-    lang_code = selected_audio.get('language', 'unknown')
-    size = best_video.get('filesize_approx') or best_video.get('filesize') or 0
-    size_mb = f"{(size / (1024 * 1024)):.1f} MB" if size else "unknown"
+    audio_fmt = (preferred_audio or fallback_audio)['format_id']
+    audio_lang = (preferred_audio or fallback_audio).get('language', 'unknown')
 
-    print(f"✅ Video Title: {title}")
-    print(f"🎥 Duration: {duration_min}")
-    print(f"🔈 Audio Language: {lang_code}")
-    print(f"💾 Video Size (approx): {size_mb}")
-    print(f"⬇️ Downloading video [{video_fmt}] and audio [{audio_fmt}]...")
+    print(f"🎥 Title: {title}")
+    print(f"⏱️ Duration: {duration_str}")
+    print(f"🗣️ Audio Language: {audio_lang}")
+    print(f"🎞️ Video Format: {video_fmt}, 🔊 Audio Format: {audio_fmt}")
 
-    ydl_opts = {
-        'outtmpl': os.path.join(download_dir, f"%(title)s.%(ext)s"),
-        'format': f'{video_fmt}+{audio_fmt}',
-        'merge_output_format': 'mp4',
-        'writesubtitles': True,
-        'subtitleslangs': [preferred_lang, 'en'],
-        'quiet': False,
-    }
+    video_file = os.path.join(download_dir, f"x_video.{best_video['ext']}")
+    audio_file = os.path.join(download_dir, f"x_audio.{audio_fmt}.{(preferred_audio or fallback_audio)['ext']}")
+    sub_file   = os.path.join(download_dir, f"x_subtitles.{lang}.vtt")
+    merged_file = os.path.join(download_dir, "x_merged.mp4")
 
-    with YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+    if mode in ['separate', 'both']:
+        # Download separately
+        ydl_opts_sep = {
+            'outtmpl': os.path.join(download_dir, 'x_%(ext)s'),
+            'format': f'{video_fmt}+{audio_fmt}',
+            'merge_output_format': None,
+            'postprocessors': [],
+            'writesubtitles': True,
+            'subtitleslangs': [lang, 'en'],
+            'quiet': False,
+        }
+        with YoutubeDL(ydl_opts_sep) as ydl:
+            ydl.download([url])
+        os.rename(os.path.join(download_dir, 'x_webm'), audio_file)
+        os.rename(os.path.join(download_dir, 'x_mp4'), video_file)
 
-    print(f"✅ Done! Saved to: {download_dir}")
+    if mode in ['merged', 'both']:
+        ydl_opts_merge = {
+            'outtmpl': merged_file,
+            'format': f'{video_fmt}+{audio_fmt}',
+            'merge_output_format': 'mp4',
+            'writesubtitles': True,
+            'subtitleslangs': [lang, 'en'],
+            'quiet': False
+        }
+        with YoutubeDL(ydl_opts_merge) as ydl:
+            ydl.download([url])
+
+    print(f"✅ Download completed in: {download_dir}")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python youtube_bot.py <YouTube_URL> [language_code]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="YouTube Multi-language Downloader Bot")
+    parser.add_argument("url", help="YouTube video URL")
+    parser.add_argument("language", nargs='?', default="fr", help="Preferred audio/subtitle language (default: fr)")
+    parser.add_argument("--mode", choices=['merged', 'separate', 'both'], default="merged", help="Download mode: merged, separate, or both")
+    args = parser.parse_args()
 
-    youtube_url = sys.argv[1]
-    preferred_lang = sys.argv[2] if len(sys.argv) >= 3 else 'fr'
-    download_video_audio(youtube_url, preferred_lang)
+    download_youtube(args.url, args.language, args.mode)
