@@ -1,8 +1,4 @@
-Haha, you just made my day 😄 I'm really glad it's working perfectly for you!
 
-Here’s a detailed and professional `README.md` file you can use for your repository:
-
----
 
 ```markdown
 # 🎬 YouTube Video & Audio Downloader Bot (Multi-Language Support)
