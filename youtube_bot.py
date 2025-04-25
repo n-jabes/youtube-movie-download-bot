@@ -1,14 +1,15 @@
+
 import sys
 import os
 import re
 import argparse
-from yt_dlp import YoutubeDL
+from yt_dlp import YoutubeDL, DownloadError
 
 def sanitize_filename(name):
     return re.sub(r'[^a-zA-Z0-9_]+', '_', name)[:40].strip('_')
 
 def download_youtube(url, lang='fr', mode='merged'):
-    print(f"\n🎬 URL: {url}")
+    print(f"\\n🎬 URL: {url}")
     print(f"🌍 Preferred Language: {lang}")
     print(f"🛠️ Mode: {mode}")
 
@@ -80,16 +81,19 @@ def download_youtube(url, lang='fr', mode='merged'):
             'subtitleslangs': [lang, 'en'],
             'quiet': False
         }
-        with YoutubeDL(sep_opts) as ydl:
-            ydl.download([url])
+        try:
+            with YoutubeDL(sep_opts) as ydl:
+                ydl.download([url])
 
-        # Rename based on format ids
-        vid_temp = os.path.join(download_dir, f"{clean_name}_{video_fmt}.{video_ext}")
-        aud_temp = os.path.join(download_dir, f"{clean_name}_{audio_fmt}.{audio_ext}")
-        if os.path.exists(vid_temp):
-            os.rename(vid_temp, video_file)
-        if os.path.exists(aud_temp):
-            os.rename(aud_temp, audio_file)
+            vid_temp = os.path.join(download_dir, f"{clean_name}_{video_fmt}.{video_ext}")
+            aud_temp = os.path.join(download_dir, f"{clean_name}_{audio_fmt}.{audio_ext}")
+            if os.path.exists(vid_temp):
+                os.rename(vid_temp, video_file)
+            if os.path.exists(aud_temp):
+                os.rename(aud_temp, audio_file)
+        except DownloadError:
+            print("⚠️ Separate download failed. Falling back to merged mode.")
+            mode = 'merged'
 
     if mode in ['merged', 'both']:
         merge_opts = {
