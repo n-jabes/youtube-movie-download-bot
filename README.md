@@ -1,25 +1,23 @@
-# 🎬 YouTube Video & Audio Downloader Bot (Multi-Language Support)
 
-This Python script allows you to download videos and audio streams separately from YouTube at the highest available quality. It supports downloading audio in a preferred language (e.g., French 🇫🇷), and falls back to English if the preferred language is unavailable.
+```markdown
+# 🎬 TMDB to YouTube Downloader Bot (Multi-Language Support)
 
-Perfect for building a **local movie or series database** using YouTube content—especially from sources like The Movie Database (TMDb) API.
+This Python script allows you to find and download full movies from YouTube based on TMDB metadata. It automatically finds the best matching video based on title, duration, and other criteria, then downloads it with your preferred audio language.
 
 ---
 
 ## 🛠️ Features
 
-- 🎞️ Downloads highest quality **video and audio streams** separately.
-- 🌍 Audio language preference with automatic fallback to English.
-- 📁 Downloads are saved in a structured `Youtube_Bot_Downloads/` directory.
-- 📂 Each download gets its own subfolder with a clean title-based name.
-- 📝 Captions (subtitles) downloaded in preferred language and English.
-- 🧪 **Language availability check mode** to verify audio/subtitle availability without downloading.
-- 🔍 Verbose mode for detailed format information.
-- 🔄 **Four download modes**:
-  - `merged`: Downloads and merges video + audio into one file
-  - `separate`: Downloads video, audio, and subtitles as separate files
-  - `both`: Tries both methods (separate first, then merged if needed)
-  - `check`: Only checks language availability without downloading anything
+- 🔍 **Smart Movie Matching** - Finds full movies on YouTube using TMDB metadata
+- 🎞️ **High-Quality Downloads** - Gets highest quality video and audio streams
+- ⏱️ **Duration Matching** - Ensures video length matches TMDB runtime (±3 minutes)
+- 🌍 **Multi-Language Support** - Prefers specified language, falls back to English
+- 📂 **Organized Storage** - Creates structured directories for each download
+- 🔄 **Multiple Download Modes**:
+  - `merged`: Single file with video+audio
+  - `separate`: Separate video, audio, and subtitle files
+  - `both`: Tries separate first, falls back to merged
+  - `check`: Only verifies language availability
 
 ---
 
@@ -35,15 +33,10 @@ cd youtube-downloader-bot
 2. **Install dependencies**
 
 ```bash
-pip install yt-dlp
+pip install yt-dlp requests
 ```
 
-> ⚠️ If you face issues during or after installation, check the Python interpreter you're using. Run:
->
-> ```bash
-> where python
-> ```
-> Ensure you're installing packages for the correct Python version.
+> ℹ️ Ensure you're using Python 3.6+ and the correct Python environment
 
 ---
 
@@ -52,122 +45,124 @@ pip install yt-dlp
 ### Basic Usage
 
 ```bash
-python youtube_downloader.py "VIDEO_URL" --lang LANGUAGE_CODE --mode MODE [--verbose]
+python youtube_downloader.py TMDB_MOVIE_ID --lang LANGUAGE_CODE --mode MODE [--verbose]
 ```
 
 ### Parameters
 
-- `VIDEO_URL`: The YouTube video URL to download
-- `--lang`: Preferred audio/subtitle language code (default: `fr` for French)
+- `TMDB_MOVIE_ID`: The TMDB movie ID (e.g., 155 for The Dark Knight)
+- `--lang`: Preferred audio/subtitle language (default: `fr` for French)
 - `--mode`: Download mode (`merged`, `separate`, `both`, or `check`)
-- `--verbose` or `-v`: Show detailed output including available formats
+- `--verbose` or `-v`: Show detailed matching and format information
 
-### 🧪 Sample Test Commands
+### Sample Commands
 
-You can test the bot using one of the following sample videos that have **multi-language audio**:
-
-#### Basic Download (French audio preferred)
-
+#### Download The Dark Knight (ID 155) with French audio
 ```bash
-python youtube_downloader.py "https://www.youtube.com/watch?v=2isYuQZMbdU" --lang fr --mode merged
+python youtube_downloader.py 155 --lang fr --mode both --verbose
 ```
 
-#### Download separate streams with verbose output
-
+#### Check language availability for a movie
 ```bash
-python youtube_downloader.py "https://www.youtube.com/watch?v=2isYuQZMbdU" --lang fr --mode separate --verbose
+python youtube_downloader.py 155 --lang es --mode check
 ```
 
-#### Try both methods (separate first, then merged)
-
+#### Download with English audio (separate streams)
 ```bash
-python youtube_downloader.py "https://www.youtube.com/watch?v=2isYuQZMbdU" --lang fr --mode both --verbose
-```
-
-#### Check language availability only (no download)
-
-```bash
-python youtube_downloader.py "https://www.youtube.com/watch?v=2isYuQZMbdU" --lang fr --mode check
-```
-
-#### With English as preferred language
-
-```bash
-python youtube_downloader.py "https://www.youtube.com/watch?v=9bZkp7q19f0" --lang en --mode merged
+python youtube_downloader.py 155 --lang en --mode separate
 ```
 
 ---
 
 ## 🧰 Output Example
 
-### Download Mode Output
+### Successful Match and Download
 
 ```
-🎬 URL: https://www.youtube.com/watch?v=2isYuQZMbdU
+✅ Fetched movie details from TMDB successfully
+
+🎬 Movie Information:
+  Title: The Dark Knight (The Dark Knight)
+  Year: 2008
+  Runtime: 152 minutes
+  Certification: PG-13
+  Genres: Action, Crime, Drama
+  Directors: Christopher Nolan
+  Main Actors: Christian Bale, Heath Ledger, Aaron Eckhart
+
+🔍 Searching YouTube for best matching movie...
+  Searching YouTube for: 'The Dark Knight 2008 full movie'
+
+🏆 Best Match Found:
+  Title: The Dark Knight (2008) Full Movie | HD Quality
+  URL: https://www.youtube.com/watch?v=example123
+  Duration: 152m 18s
+  Match Score: 0.92/1.00
+
+🎬 URL: https://www.youtube.com/watch?v=example123
 🌍 Preferred Language: fr
 🛠️ Mode: both
 
-🎥 Title: I Gave My 100,000,000th Subscriber An Island
-⏱️ Duration: 15m 30s
+🎥 Title: The Dark Knight (2008) Full Movie | HD Quality
+⏱️ Duration: 152m 18s
 
 📊 Stream Selection:
   • Video: 137 (1080p)
-  • Audio: 140-14 (Language: fr)
+  • Audio: 140 (Language: en) [fr not available]
 
 🔽 Downloading separate video and audio streams...
-✅ Audio stream saved: I_Gave_My_100_000_000th_Subscriber_An_Is_audio_fr.m4a
-✅ Subtitles downloaded (if available)
+✅ Video stream saved: The_Dark_Knight_2008_video.mp4
+✅ Audio stream saved: The_Dark_Knight_2008_audio_en.m4a
+✅ Subtitles downloaded
 
-📁 All output saved to: Youtube_Bot_Downloads\I_Gave_My_100_000_000th_Subscriber_An_Is
+📁 All output saved to: Youtube_Bot_Downloads/The_Dark_Knight_2008
 ```
 
-### Check Mode Output
-
-```
-🔍 Checking language availability for https://www.youtube.com/watch?v=2isYuQZMbdU
-🌍 Preferred Language: fr
-✅ Audio in fr: True
-✅ Subtitles in fr: True
-```
-
-## 📁 Directory Structure
+### Directory Structure
 
 ```
 Youtube_Bot_Downloads/
-└── I_Gave_My_100_000_000th_Subscriber_An_Is/
-    ├── I_Gave_My_100_000_000th_Subscriber_An_Is_video.mp4
-    ├── I_Gave_My_100_000_000th_Subscriber_An_Is_audio_fr.m4a
-    ├── I_Gave_My_100_000_000th_Subscriber_An_Is.fr.vtt
-    ├── I_Gave_My_100_000_000th_Subscriber_An_Is.en.vtt
-    └── I_Gave_My_100_000_000th_Subscriber_An_Is_merged.mp4 (if using 'both' mode)
+└── The_Dark_Knight_2008/
+    ├── The_Dark_Knight_2008_video.mp4
+    ├── The_Dark_Knight_2008_audio_en.m4a
+    ├── The_Dark_Knight_2008.fr.vtt
+    ├── The_Dark_Knight_2008.en.vtt
+    └── The_Dark_Knight_2008_merged.mp4 (if using 'both' mode)
 ```
 
 ---
 
-## 🧠 Notes
+## 🧠 How It Works
 
-- This script uses `yt-dlp`, a more up-to-date fork of `youtube-dl` that handles modern YouTube formats better.
-- For large videos, downloads may take time or timeout. Consider using a stable internet connection.
-- Some videos might not have separate audio streams in all languages. The script will fall back to the best available option.
-- To upgrade yt-dlp:
-  ```bash
-  pip install --upgrade yt-dlp
-  ```
+1. **TMDB Lookup**: Fetches movie details (title, year, runtime, etc.)
+2. **YouTube Search**: Finds videos matching:
+   - Title similarity
+   - Duration (±3 minutes of TMDB runtime)
+   - "Full movie" indicators
+   - Release year match
+3. **Scoring**: Rates matches (0.0-1.0) based on:
+   - Title match (40%)
+   - Duration match (30%)
+   - "Full movie" in title (10%)
+   - Year match (10%)
+   - Official TMDB video (10%)
+4. **Download**: Gets the best available match with preferred language
 
 ---
 
 ## ⚙️ Troubleshooting
 
-- **Timeouts**: If you experience timeouts with large videos, try using the merged mode or increase your connection stability.
-- **Format Issues**: Use `--verbose` to see all available formats for troubleshooting.
-- **Language Not Available**: Use `--mode check` to verify if your preferred language is available before downloading.
+- **No matches found**: Try a different TMDB ID or check if the movie exists on YouTube
+- **Timeout errors**: Increase timeout in script or try again later
+- **Language not available**: The script will automatically fallback to English
+- **Low quality matches**: Use `--verbose` to see matching details
 
 ---
 
-## 💬 Questions?
+## 💬 Need Help?
 
-If you encounter issues or want to suggest improvements, feel free to open an issue or reach out!
+Open an issue if you encounter problems or have suggestions for improvement!
 
 ---
 
-Happy downloading! 📥
+Happy movie downloading! 🎥🍿
