@@ -10,7 +10,7 @@ from functools import partial
 from difflib import SequenceMatcher
 
 # Constants
-TMDB_API_KEY = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmZjE3YjJmNDY0NDg4MGY3OWU4YjkwNTU4NmQ1MTdjZiIsIm5iZiI6MS43NDY4MjIwMjk2MDMwMDAyZSs5LCJzdWIiOiI2ODFlNjM4ZGZjMmUxNTUwYTgzNTFlZjQiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.Y1kZfOu5C3s0UhKK0f03W90R3ZCSKMaEU0BMscAsoYk"
+TMDB_API_KEY = "your_tmdb_api_key" # Replace with your/company's TMDB API Read Access Token
 TMDB_BASE_URL = 'https://api.themoviedb.org/3'
 YOUTUBE_SEARCH_TEMPLATE = "{} {} full movie"  # Template for YouTube search query
 MAX_DURATION_DIFF = 3 * 60  # Maximum duration difference in seconds (+/- 3 minutes)
